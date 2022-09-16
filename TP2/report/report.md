@@ -17,5 +17,9 @@ In the general case we have $acc(r, c, rad)$ corresponding to the circle with:
 - rad = $rad_{min} + (k-1) \times \delta rad$
 
 If we take the intervals and steps from the last question:
-- $acc(1, 1, 1)$ corresponds to the circle of center $(r_{min}, c_{min})$ and rad = $rad_{min}$
-- $acc(10, 7, 30)$
+- $acc(1, 1, 1)$ corresponds to the circle with:
+    - center = $(1, 1)$ 
+    - rad = $5$
+- $acc(10, 7, 30)$ corresponds to the circle with:
+    - center = $(1 + (10-1), 1 + (7-1))$ = $(10, 7)$
+    - rad = $5 + (30-1)$ = $34$

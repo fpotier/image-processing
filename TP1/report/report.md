@@ -1,4 +1,4 @@
-# Compte rendu
+# Report
 Potier - Boireau
 ## Loading original image and display it in background
 - Load the image
