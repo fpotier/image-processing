@@ -30,19 +30,19 @@ int main(int argc, char** argv)
     }
     cv::Mat imageIn;
     cv::cvtColor(image_original, imageIn, cv::COLOR_BGR2BGRA, 4);
-    cv::Mat background(imageIn.rows, imageIn.cols, CV_8UC4, cv::Scalar(200, 200, 200, 255));
-    cv::addWeighted(imageIn, 1.0, background, 0.5, 0, imageIn);
+    cv::Mat veil(imageIn.rows, imageIn.cols, CV_8UC4, cv::Scalar(200, 200, 200, 255));
+    cv::addWeighted(imageIn, 1.0, veil, 0.5, 0, imageIn);
 
     std::vector<fragment> fragments;
     std::ifstream fragment_list("../fragments.txt");
-    int i, tmp_x, tmp_y;
-    double tmp_angle;
-    while (fragment_list >> i && fragment_list >> tmp_x && fragment_list >> tmp_y && fragment_list >> tmp_angle)
+    int i, frag_x, frag_y;
+    double frag_angle;
+    while (fragment_list >> i && fragment_list >> frag_x && fragment_list >> frag_y && fragment_list >> frag_angle)
     {
         std::ostringstream ss;
         ss << "../frag_eroded/frag_eroded_" << i << ".png";
-        fragment tmp_fragment(i, tmp_x, tmp_y, tmp_angle, cv::imread(ss.str(), cv::IMREAD_UNCHANGED));
-        fragments.push_back(tmp_fragment);
+        fragment frag(i, frag_x, frag_y, frag_angle, cv::imread(ss.str(), cv::IMREAD_UNCHANGED));
+        fragments.push_back(frag);
     }
 
     for (fragment const& frag : fragments)
@@ -64,23 +64,14 @@ int main(int argc, char** argv)
             frag_roi_y = -roi_y;
             roi_y = 0;
         }
-        try
-        {
-            cv::Mat roi = imageIn(cv::Rect(roi_x, roi_y, roi_w, roi_h));
-            cv::Mat frag_roi = frag.img(cv::Rect(frag_roi_x, frag_roi_y, roi_w, roi_h));
-            cv::Mat mask;
-            cv::extractChannel(frag_roi, mask, 3);
-            mask.forEach<uint8_t>([] (uint8_t& p, const int* pos) {
-                p = p > 128;
-            });
-            frag_roi.copyTo(roi, mask);
-        }
-        catch (...)
-        {
-            std::cout << "x=" << frag_roi_x << " y=" << frag_roi_y << " cols=" << roi_w << " rows=" << roi_h << '\n';
-            std::cout << "ROI: x=" << roi_x << " y=" << roi_y << " w=" << roi_w << " h=" << roi_h << '\n';
-            throw;
-        }
+        cv::Mat roi = imageIn(cv::Rect(roi_x, roi_y, roi_w, roi_h));
+        cv::Mat frag_roi = frag.img(cv::Rect(frag_roi_x, frag_roi_y, roi_w, roi_h));
+        cv::Mat mask;
+        cv::extractChannel(frag_roi, mask, 3);
+        mask.forEach<uint8_t>([] (uint8_t& p, const int* pos) {
+            p = p > 128;
+        });
+        frag_roi.copyTo(roi, mask);
     }
 
     cv::imshow("Display window", imageIn);
