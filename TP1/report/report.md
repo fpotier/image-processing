@@ -49,13 +49,57 @@ struct fragment
 };
 ```
 ## Adding fragments to image
+In openCV, when you want to paste an image onto another, with the first being smaller than the second one, you have to select a region of interest (ROI) in the destination image.
+```cpp
+int roi_x = frag.x - frag.img.cols / 2; // The position of the fragment is given relative to its center
+int roi_y = frag.y - frag.img.rows / 2;
+int roi_w = frag.img.cols;
+int roi_h = frag.img.rows;
 
-## Channels of original image and fragments' do not match
-- adding alpha channel to original image
-
+cv::Mat roi = imageIn(cv::Rect(roi_x, roi_y, roi_w, roi_h));
+frag_roi.copyTo(roi, mask);
+```
+## Image format
+When copying an image onto another one, they must be in the same format. Unfortunately, the fragments are in BGRA format while the original image is in BGR (without alpha channel).
+To make them match, we add an alpha channel to the original image:
+```cpp
+cv::Mat imageIn;
+cv::cvtColor(image_original, imageIn, cv::COLOR_BGR2BGRA, 4);
+```
+With that done, we are able to paste most of the fragments onto the image. However, some of them (those on the edges) have a part out of the image so they are not pasted and produce an exception (that we just catch for now). 
+At this point, here is the output image:
 ![fragments_with_borders](fragments_with_borders.png)
 
+## Fragments on the edges
+We don't want to copy the part of the fragment out of the image so we clip it from the ROI:
+```cpp
+int roi_w = std::min(frag.img.cols, imageIn.cols - roi_x); // removes the part at the right
+int roi_h = std::min(frag.img.rows, imageIn.rows - roi_y);
+if (roi_x < 0)
+{
+    roi_w += roi_x;  // x is negative so this removes the part that is at the left of the image
+    frag_roi_x = -roi_x;
+    roi_x = 0;
+}
+if (roi_y < 0)
+{
+    roi_h += roi_y;
+    frag_roi_y = -roi_y;
+    roi_y = 0;
+}
+```
 ## Not copying transparent borders of fragments
-- building a mask to filter the pixel with low alpha component and passing it to copyTo()
+In order not to draw the transparent pixels of the fragments (and avoid these black borders), we build a mask, based on the alpha channel of the fragment, that will filter out the pixels with alpha less than 128 (arbitrary value that seems to fit).
+```cpp
+cv::Mat mask;
+cv::extractChannel(frag_roi, mask, 3);
+mask.forEach<uint8_t>([] (uint8_t& p, const int* pos) {
+    p = p > 128;
+});
+frag_roi.copyTo(roi, mask);
 
+```
+
+
+The final output image is:
 ![reconstruction](reconstruction.jpg)
