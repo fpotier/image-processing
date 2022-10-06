@@ -1,5 +1,6 @@
 # Report
 Potier - Boireau
+
 ## Loading original image and display it in background
 To form the background, we load the original image as is with:
 ```cpp
@@ -13,6 +14,7 @@ cv::Mat veil(imageIn.rows, imageIn.cols, CV_8UC4, cv::Scalar(200, 200, 200, 255)
 cv::addWeighted(imageIn, 1.0, veil, 0.5, 0, imageIn); // alpha_orig = 1.0 and alpha_veil = 0.5
 ```
 ![veiled_orig_image](veiled_orig_image.jpg)
+
 ## Loading fragments
 To load the fragments, we read the fragment list to fetch their coordinates, associated with the corresponding image.
 ```cpp

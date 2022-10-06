@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <vector>
 
+const std::string project_dir(PROJECT_DIRECTORY);
+
 struct fragment
 {
     fragment(int _id, int _x, int _y, double _angle, cv::Mat _img)
@@ -34,13 +36,13 @@ int main(int argc, char** argv)
     cv::addWeighted(imageIn, 1.0, veil, 0.5, 0, imageIn);
 
     std::vector<fragment> fragments;
-    std::ifstream fragment_list("../fragments.txt");
+    std::ifstream fragment_list(project_dir + "/fragments.txt");
     int i, frag_x, frag_y;
     double frag_angle;
     while (fragment_list >> i && fragment_list >> frag_x && fragment_list >> frag_y && fragment_list >> frag_angle)
     {
         std::ostringstream ss;
-        ss << "../frag_eroded/frag_eroded_" << i << ".png";
+        ss << project_dir << "/frag_eroded/frag_eroded_" << i << ".png";
         fragment frag(i, frag_x, frag_y, frag_angle, cv::imread(ss.str(), cv::IMREAD_UNCHANGED));
         fragments.push_back(frag);
     }
