@@ -1,6 +1,8 @@
 # Report
 Potier - Boireau
 
+## Exercise 1:
+
 ## Loading original image and display it in background
 To form the background, we load the original image as is with:
 ```cpp
@@ -102,6 +104,92 @@ frag_roi.copyTo(roi, mask);
 
 ```
 
-
 The final output image is:
 ![reconstruction](reconstruction.jpg)
+___
+
+## Exercise 2:
+
+In this exercise the goal was to compare a user-provided solution with the reference solution file. Each of these file contain a list of fragment id and position (coordinates of the center and angle use to rotate it), each entry can be represented by this `struct`:
+```cpp
+struct fragment_position
+{
+    int x;
+    int y;
+    double alpha;
+};
+```
+We chose to represent a solution with:
+```cpp
+std::array<std::optional<fragment_position>, NB_FRAGMENTS> solution;
+```
+The index in the array corresponds to the fragment's identifier. This is possible because we know the total number of fragments.
+Since a solution may not include a fragment we decided to use `std::optional`.
+This way, an empty entry in the array means that the fragment is not used in the solution.
+
+This is how we read the reference solution:
+```cpp
+std::array<std::optional<fragment_position>, NB_FRAGMENTS> reference_solution;
+{
+    std::ifstream reference_file(project_dir + "/fragments.txt");
+    while (reference_file >> frag_index >> frag_x >> frag_y >> frag_alpha)
+        reference_solution[frag_index] = fragment_position { frag_x, frag_y, frag_alpha };
+}
+```
+And we do the same with the user-provided solution.
+
+Now we can compare the two solutions by iterating over the arrays
+```cpp
+if (ref_fragment.has_value())
+{
+    if (user_fragment.has_value() && (has_correct_position(ref_fragment.value(), user_fragment.value())))
+        // The fragment position is correct
+}
+else if (user_fragment.has_value())
+    // User's solution contains a fragment that is not part of the fresco
+```
+
+With the verification function:
+```cpp
+bool has_correct_position(fragment_position const& ref_fragment, fragment_position const& user_fragment)
+{
+    return std::abs(ref_fragment.x - user_fragment.x) <= delta_x
+        && std::abs(ref_fragment.y - user_fragment.y) <= delta_y
+        && std::abs(ref_fragment.alpha - user_fragment.alpha) <= delta_alpha;
+}
+```
+To compute the final score, we need to know each fragment's surface (we consider that the surface of a fragment is the number of opaque pixels).
+To determine this, we use this data structure:
+```cpp
+struct fragment_image
+{
+    fragment_image(std::string const& path)
+    {
+        img = cv::imread(path, cv::IMREAD_UNCHANGED);
+        if (!img.data)
+            throw std::invalid_argument("Invalid fragment path: " + path);
+        cv::Mat alpha_channel;
+        cv::extractChannel(img, alpha_channel, 3);
+        visible_pixels = std::accumulate(alpha_channel.begin<uint8_t>(), alpha_channel.end<uint8_t>(), 0,
+            [](int accumulator, uint8_t val) {
+                return accumulator + (val > 128);
+            }
+        );
+    }
+    cv::Mat img;
+    int visible_pixels;
+};
+```
+A pixel is considered opaque if the value of its alpha channel is greater than a certain threshold (here 128).
+
+The only issue we faced during this exercise was related to C++. We tried to use the same code as in the first exercise to determine opaque pixels:
+```cpp
+cv::Mat alpha_channel;
+cv::extractChannel(img, alpha_channel, 3);
+alpha_channel.forEach<uint8_t>([this] (uint8_t& p, const int* pos) {
+    visible_pixels += p > 128;
+});
+```
+We captured `this` to access `fragment_image::visible_pixels` in the constructor. The issue is that at this point the object is not properly initialized yet so the `this` pointer isn't valid. Using it at this point is undefined behavior. This caused random values for visible pixels between two executions with the same parameters.
+To overcome this issue we used a temporary value instead of directly referencing the `visible_pixels` field.
+

@@ -39,7 +39,7 @@ int main(int argc, char** argv)
     std::ifstream fragment_list(project_dir + "/fragments.txt");
     int i, frag_x, frag_y;
     double frag_angle;
-    while (fragment_list >> i && fragment_list >> frag_x && fragment_list >> frag_y && fragment_list >> frag_angle)
+    while (fragment_list >> i >> frag_x >> frag_y >> frag_angle)
     {
         std::ostringstream ss;
         ss << project_dir << "/frag_eroded/frag_eroded_" << i << ".png";
