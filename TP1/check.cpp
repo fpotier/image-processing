@@ -10,9 +10,10 @@
 
 static constexpr int NB_FRAGMENTS = 328;
 
-const int delta_x = 1;
-const int delta_y = 1;
-const int delta_alpha = 1;
+const std::string usage = "Usage: check solution_file [delta_x] [delta_y] [delta_alpha]\n";
+int delta_x = 1;
+int delta_y = 1;
+double delta_alpha = 1;
 
 const std::string project_dir(PROJECT_DIRECTORY);
 
@@ -51,6 +52,18 @@ bool has_correct_position(fragment_position const& ref_fragment, fragment_positi
 
 int main(int argc, char** argv)
 {
+    if (argc < 2)
+    {
+        std::cerr << usage;
+        return 1;
+    }
+    if (argc >= 3)
+        delta_x = std::atoi(argv[2]);
+    if (argc >= 4)
+        delta_y = std::atoi(argv[3]);
+    if (argc == 5)
+        delta_alpha = std::atof(argv[4]);
+
     std::vector<fragment_image> fragments;
     fragments.reserve(NB_FRAGMENTS);
     for (size_t i = 0; i < NB_FRAGMENTS; i++)

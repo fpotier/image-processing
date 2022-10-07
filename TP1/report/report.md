@@ -193,3 +193,8 @@ alpha_channel.forEach<uint8_t>([this] (uint8_t& p, const int* pos) {
 We captured `this` to access `fragment_image::visible_pixels` in the constructor. The issue is that at this point the object is not properly initialized yet so the `this` pointer isn't valid. Using it at this point is undefined behavior. This caused random values for visible pixels between two executions with the same parameters.
 To overcome this issue we used a temporary value instead of directly referencing the `visible_pixels` field.
 
+Tests:
+- `empty` solution file without any fragment -> score 0%
+- `solution` correct solution file -> score 100%
+- `solution_and_bad_fragment` correct solution file with one bad fragment -> score < 100%
+- `solution_plus_three` solution file with 3 added to each value (x, y and alpha) -> score 0% with default settings and 100% if the deltas are increased via cli arguments
