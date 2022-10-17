@@ -23,3 +23,23 @@ If we take the intervals and steps from the last question:
 - $acc(10, 7, 30)$ corresponds to the circle with:
     - center = $(1 + (10-1), 1 + (7-1))$ = $(10, 7)$
     - rad = $5 + (30-1)$ = $34$
+
+4.
+$x = r_{min} + (i - 1) \times \delta r$
+
+$ (i - 1) \times \delta r =  x - r_{min}$
+
+$ i = \lfloor \frac{x - r_{min}}{\delta r} + 1 \rfloor $
+
+and :
+
+$ j = \lfloor \frac{y - c_{min}}{\delta c} + 1 \rfloor $
+
+$ k = \lfloor \frac{k - rad_{min}}{\delta rad} + 1 \rfloor $
+
+With the previous intervals and steps:
+- $ i = \frac{40 - 1}{1} + 1 = 40$
+- $ j = \frac{40 - 1}{1} + 1 = 40$
+- $ k =  \frac{13 - 5}{1} + 1 = 9$
+
+## Exercise 2: Detector implementation
