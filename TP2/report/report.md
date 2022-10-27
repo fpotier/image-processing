@@ -115,7 +115,7 @@ We started by selcting only pixels that were above 80% of the max value in the g
 |                 80%                    |                   50%                |
 
 We are now sure that the edges are correctly detected and we can start to fill our accumulator.
-The size of the accumulator is $ nb\_row \times nb\_col \times nb\_radius$.
+The size of the accumulator is $nb\_row \times nb\_col \times nb\_radius$.
 ```cpp
 std::vector<int> accumulator(gradient.cols * gradient.rows * nb_radius, 0);
 ```
@@ -197,11 +197,23 @@ for (int i = 0; i < 5; i++)
 void draw_circle(cv::Mat const& image, accumulator_point const& accu_point)
 {
     cv::circle(image,
-        cv::Point(accu_point.r, accu_point.c),
-        accu_point.radius + radius_min,
+        cv::Point(accu_point.c, accu_point.r),
+        accu_point.radius,
         cv::viz::Color::red());
 }
 ```
 When incrementing the accumulator regardless of the circle's radius, we got this result:
 
 ![](img/first_try.png)
+
+To improve the results, we vote by normalizing the gradient magnitude by the circle's radius
+```cpp
+double radius = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
+if (radius >= radius_min && radius < radius_max)
+    accumulator[compute_accumulator_index(r, c, radius)] += gradient.at<uint8_t>(i, j) / radius;
+```
+And the result are much better, even with noise:
+
+|![](img/second_try_gradient.png)|![](img/second_try_normalized.png)|![](img/second_try_noise.png)|
+|:-----------------------------: | :------------------------------: |:---------------------------:|
+|   Vote by gradient magnitude   |Vote normalized by circle's radius|         Both combined       |
