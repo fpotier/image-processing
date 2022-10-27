@@ -14,7 +14,7 @@ int radius_max = 0;
 int nb_radius = 0;
 
 int compute_accumulator_index(int r, int c, int rad);
-bool is_local_max(std::vector<int> const& accumulator, int r, int c, int rad);
+bool is_local_max(std::vector<double> const& accumulator, int r, int c, int rad);
 
 struct accumulator_point
 {
@@ -75,7 +75,7 @@ int main()
     nb_col = gradient.cols;
     radius_max = std::min(gradient.cols / 2, gradient.rows / 2);
     nb_radius = radius_max - radius_min;
-    std::vector<int> accumulator(gradient.cols * gradient.rows * nb_radius, 0);
+    std::vector<double> accumulator(gradient.cols * gradient.rows * nb_radius, 0);
     std::cout << "vec size " << gradient.cols * gradient.rows * nb_radius << '\n';
     for (size_t i = 0; i < gradient.rows; i++)
     {
@@ -90,9 +90,9 @@ int main()
                 {
                     int delta_x = i - r;
                     int delta_y = j - c;
-                    int radius = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
+                    double radius = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
                     if (radius >= radius_min && radius < radius_max)
-                        accumulator[compute_accumulator_index(r, c, radius)]++;
+                        accumulator[compute_accumulator_index(r, c, radius)] += gradient.at<uint8_t>(i, j) / radius;
                 }
             }
         }
@@ -131,7 +131,7 @@ int compute_accumulator_index(int r, int c, int rad)
     return r * nb_col * nb_radius + c * nb_radius + rad - radius_min;
 }
 
-bool is_local_max(std::vector<int> const& accumulator, int r, int c, int rad)
+bool is_local_max(std::vector<double> const& accumulator, int r, int c, int rad)
 {
     int local_value = accumulator[compute_accumulator_index(r, c, rad)];
     bool is_max = local_value > 0;
@@ -158,7 +158,7 @@ bool is_local_max(std::vector<int> const& accumulator, int r, int c, int rad)
 void draw_circle(cv::Mat const& image, accumulator_point const& accu_point)
 {
     cv::circle(image,
-        cv::Point(accu_point.r, accu_point.c),
-        accu_point.radius + radius_min,
+        cv::Point(accu_point.c, accu_point.r),
+        accu_point.radius,
         cv::viz::Color::red());
 }
