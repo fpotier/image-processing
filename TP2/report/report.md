@@ -2,14 +2,14 @@
 Potier - Boireau
 
 ## Exercise 1 - Hough transform for circles
-1. Let $ r \in [1, 100] $
-- If $\delta r = 2 $, we have 50 discrete values
-- If $\delta r = 0.5 $, we have 200 discrete values
+1. Let $r \in [1, 100]$
+- If $\delta r = 2$, we have 50 discrete values
+- If $\delta r = 0.5$, we have 200 discrete values
 
-2. Let $ r, c \in [1, 100] $, $ rad \in [5, 100\sqrt2] $ and $\delta r$ = $\delta c$ = $\delta rad$ = 1
+2. Let $r, c \in [1, 100]$, $rad \in [5, 100\sqrt2]$ and $\delta r$ = $\delta c$ = $\delta rad$ = 1
 - For r and c we have 100 discrete values each
 - For rad we have $\frac{rad_{max} - rad_{min}}{\delta_{rad}}$ = $\frac{100\sqrt2 - 5}{1}$ = 137 discrete values
-> So we can describe $ 100 \times 100 \times 137$ = $1 370 000$ circles
+> So we can describe $100 \times 100 \times 137$ = $1 370 000$ circles
 
 3.
 In the general case we have $acc(r, c, rad)$ corresponding to the circle with:
@@ -27,20 +27,20 @@ If we take the intervals and steps from the last question:
 4.
 $x = r_{min} + (i - 1) \times \delta r$
 
-$ (i - 1) \times \delta r =  x - r_{min}$
+$(i - 1) \times \delta r =  x - r_{min}$
 
-$ i = \lfloor \frac{x - r_{min}}{\delta r} + 1 \rfloor $
+$i = \lfloor \frac{x - r_{min}}{\delta r} + 1 \rfloor$
 
 and :
 
-$ j = \lfloor \frac{y - c_{min}}{\delta c} + 1 \rfloor $
+$j = \lfloor \frac{y - c_{min}}{\delta c} + 1 \rfloor$
 
-$ k = \lfloor \frac{k - rad_{min}}{\delta rad} + 1 \rfloor $
+$k = \lfloor \frac{k - rad_{min}}{\delta rad} + 1 \rfloor$
 
 With the previous intervals and steps:
-- $ i = \frac{40 - 1}{1} + 1 = 40 $
-- $ j = \frac{40 - 1}{1} + 1 = 40 $
-- $ k =  \frac{13 - 5}{1} + 1 = 9 $
+- $i = \frac{40 - 1}{1} + 1 = 40$
+- $j = \frac{40 - 1}{1} + 1 = 40$
+- $k =  \frac{13 - 5}{1} + 1 = 9$
 
 ___
 
