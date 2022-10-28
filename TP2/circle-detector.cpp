@@ -4,51 +4,115 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/viz/types.hpp>
 #include <string>
+#include <vector>
 
 const std::string project_dir(PROJECT_DIRECTORY);
 
-int nb_row = 0;
-int nb_col = 0;
-int radius_min = 5;
-int radius_max = 0;
-int nb_radius = 0;
-
-int compute_accumulator_index(int r, int c, int rad);
-bool is_local_max(std::vector<double> const& accumulator, int r, int c, int rad);
-
 struct accumulator_point
 {
-    accumulator_point(int r_, int c_, int radius_ , int score_)
-        : r(r_), c(c_), radius(radius_), score(score_)
+    accumulator_point(int _row, int _column, int _radius , int _score)
+        : row(_row), column(_column), radius(_radius), score(_score)
     {}
 
-    int r, c, radius;
+    int row, column, radius;
     int score;
 };
 
+class accumulator
+{
+public:
+    accumulator(int rows, int columns, int radius_min, int radius_max)
+        : m_vec(rows * columns * radius_max - radius_max, 0),
+        m_rows(rows), m_columns(columns), m_radiuses(radius_max - radius_min),
+        m_radius_min(radius_min), m_radius_max(radius_max)
+    {}
+
+    double& at(int row, int column, int radius)
+    {
+        return m_vec[row * m_rows * m_radiuses + column * m_radiuses + radius - m_radius_min];
+    }
+
+    double at(int row, int column, int radius) const
+    {
+        return m_vec[row * m_rows * m_radiuses + column * m_radiuses + radius - m_radius_min];
+    }
+
+    bool is_local_max(int row, int column, int radius)
+    {
+        double local_value = at(row, column, radius);
+        bool is_max = local_value > 0;
+        for (int i = -1; i <= 1 && is_max; i++)
+        {
+            if (row + i < 0 || row + i >= m_rows)
+                continue;
+            for (int j = -1; j <= 1 && is_max; j++)
+            {
+                if (column + j < 0 || column + j >= m_columns)
+                    continue;
+                for (int k = -1; k <= 1 && is_max; k++)
+                {
+                    if ((i == 0 && j == 0 && k == 0) || radius + k < m_radius_min || radius + k >= m_radius_max)
+                        continue;
+                    is_max = local_value > at(row + i, column + j, radius + k);
+                }
+            }
+        }
+
+        return is_max;
+    }
+
+private:
+    std::vector<double> m_vec;
+    int m_rows, m_columns, m_radiuses;
+    int m_radius_min, m_radius_max;
+};
+
+void naive_circle_detection(cv::Mat& original_image);
 void draw_circle(cv::Mat const& image, accumulator_point const& accu_point);
 
 int main()
 {
-    cv::Mat original_img = cv::imread(project_dir + "/images/four.png", cv::IMREAD_UNCHANGED);
-
-    cv::Mat grayscale_img;
-    if (original_img.channels() == 1)
+    cv::Mat original_image = cv::imread(project_dir + "/images/coins2.jpg", cv::IMREAD_UNCHANGED);
+    if (original_image.empty())
     {
-        grayscale_img = original_img;
-        cv::cvtColor(original_img, original_img, cv::COLOR_GRAY2BGRA);
+        std::cerr << "Could not load the image\n";
+        exit(1);
+    }
+    naive_circle_detection(original_image);
+    cv::imshow("TEST", original_image);
+    while (cv::waitKey() != 'q')
+        ;
+
+    return 0;
+}
+
+void draw_circle(cv::Mat const& image, accumulator_point const& accu_point)
+{
+    cv::circle(image,
+        cv::Point(accu_point.column, accu_point.row),
+        accu_point.radius,
+        cv::viz::Color::red());
+}
+
+void naive_circle_detection(cv::Mat& original_image)
+{
+    cv::Mat grayscale_image;
+    if (original_image.channels() == 1)
+    {
+        grayscale_image = original_image;
+        cv::cvtColor(original_image, original_image, cv::COLOR_GRAY2BGRA);
     }
     else
     {
-        cv::cvtColor(original_img, grayscale_img, cv::COLOR_BGRA2GRAY);
+        cv::cvtColor(original_image, grayscale_image, cv::COLOR_BGRA2GRAY);
     }
 
     // We apply a Gaussian filter to reduce noise
-    cv::GaussianBlur(grayscale_img, grayscale_img, cv::Size(3, 3), 0, 0, cv::BORDER_DEFAULT);
+    cv::GaussianBlur(grayscale_image, grayscale_image, cv::Size(3, 3), 0, 0, cv::BORDER_DEFAULT);
 
     cv::Mat gradient_x, gradient_y;
-    cv::Sobel(grayscale_img, gradient_x, CV_16S, 1, 0);
-    cv::Sobel(grayscale_img, gradient_y, CV_16S, 0, 1);
+    cv::Sobel(grayscale_image, gradient_x, CV_16S, 1, 0);
+    cv::Sobel(grayscale_image, gradient_y, CV_16S, 0, 1);
 
     cv::Mat abs_gradient_x, abs_gradient_y;
     cv::convertScaleAbs(gradient_x, abs_gradient_x);
@@ -62,21 +126,11 @@ int main()
     cv::minMaxLoc(gradient, nullptr, &gradient_max);
     std::cout << "Gradient maximum value: " << gradient_max << '\n';
     double threshold_gradient = gradient_max * threshold_coef;
-    /*
-    gradient.forEach<uint8_t>([threshold_gradient](uint8_t& pixel, const int position[2]) {
-        if (pixel >= threshold_gradient)
-        {
-            pixel = 255;
-            std::cout << "(" << position[0] << ", " << position[1] << ")\n";
-        }
-    });
-    */
-    nb_row = gradient.rows;
-    nb_col = gradient.cols;
-    radius_max = std::min(gradient.cols / 2, gradient.rows / 2);
-    nb_radius = radius_max - radius_min;
-    std::vector<double> accumulator(gradient.cols * gradient.rows * nb_radius, 0);
-    std::cout << "vec size " << gradient.cols * gradient.rows * nb_radius << '\n';
+
+    int radius_max = std::min(gradient.cols / 2, gradient.rows / 2);
+    int radius_min = radius_max * 0.1;
+
+    accumulator acc(gradient.rows, gradient.cols, radius_min, radius_max);
     for (size_t i = 0; i < gradient.rows; i++)
     {
         for (size_t j = 0; j < gradient.cols; j++)
@@ -92,7 +146,7 @@ int main()
                     int delta_y = j - c;
                     double radius = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
                     if (radius >= radius_min && radius < radius_max)
-                        accumulator[compute_accumulator_index(r, c, radius)] += gradient.at<uint8_t>(i, j) / radius;
+                        acc.at(r, c, radius) += gradient.at<uint8_t>(i, j) / radius;
                 }
             }
         }
@@ -105,8 +159,8 @@ int main()
         {
             for (int rad = radius_min; rad < radius_max; rad++)
             {
-                if (is_local_max(accumulator, r, c, rad))
-                    local_maximums.emplace_back(r, c, rad, accumulator[compute_accumulator_index(r, c, rad)]);
+                if (acc.is_local_max(r, c, rad))
+                    local_maximums.emplace_back(r, c, rad, acc.at(r, c, rad));
             }
         }
     }
@@ -115,50 +169,7 @@ int main()
     std::sort(local_maximums.begin(), local_maximums.end(), [](accumulator_point const& lhs, accumulator_point const& rhs) {
         return lhs.score > rhs.score;
     });
-    std::cout << "First circle: center(" << local_maximums[0].r << ", " << local_maximums[0].c << ") radius=" << local_maximums[0].radius << '\n';
-    for (int i = 0; i < 5; i++)
-        draw_circle(original_img, local_maximums[i]);
-
-    cv::imshow("TEST", original_img);
-    while (cv::waitKey() != 'q')
-        ;
-
-    return 0;
-}
-
-int compute_accumulator_index(int r, int c, int rad)
-{
-    return r * nb_col * nb_radius + c * nb_radius + rad - radius_min;
-}
-
-bool is_local_max(std::vector<double> const& accumulator, int r, int c, int rad)
-{
-    int local_value = accumulator[compute_accumulator_index(r, c, rad)];
-    bool is_max = local_value > 0;
-    for (int i = -1; i <= 1 && is_max; i++)
-    {
-        if (r + i < 0 || r + i >= nb_row)
-            continue;
-        for (int j = -1; j <= 1 && is_max; j++)
-        {
-            if ( c + j < 0 || c + j >= nb_col)
-                continue;
-            for (int k = -1; k <= 1 && is_max; k++)
-            {
-                if ((i == 0 && j == 0 && k == 0) || rad + k < radius_min || rad + k >= radius_max)
-                    continue;
-                is_max = local_value > accumulator[compute_accumulator_index(r + i, c + j, rad + k)];
-            }
-        }
-    }
-
-    return is_max;
-}
-
-void draw_circle(cv::Mat const& image, accumulator_point const& accu_point)
-{
-    cv::circle(image,
-        cv::Point(accu_point.c, accu_point.r),
-        accu_point.radius,
-        cv::viz::Color::red());
+    std::cout << "First circle: center(" << local_maximums[0].row << ", " << local_maximums[0].column << ") radius=" << local_maximums[0].radius << '\n';
+    for (int i = 0; i < 4; i++)
+        draw_circle(original_image, local_maximums[i]);
 }
