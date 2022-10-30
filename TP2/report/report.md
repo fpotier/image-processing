@@ -217,3 +217,58 @@ And the result are much better, even with noise:
 |![](img/second_try_gradient.png)|![](img/second_try_normalized.png)|![](img/second_try_noise.png)|
 |:-----------------------------: | :------------------------------: |:---------------------------:|
 |   Vote by gradient magnitude   |Vote normalized by circle's radius|         Both combined       |
+
+## Exercise 3: Compute time
+
+1. To benchmark our implementation of the algorithm, we use this code:
+```cpp
+auto start = std::chrono::system_clock::now();
+naive_circle_detection(original_image);
+auto end = std::chrono::system_clock::now();
+std::cout << "Compute time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms\n";
+```
+Compute time for `four.png` is aroung 43 milliseconds on my laptop:
+```bash
+for ((i=0; i<5; i++)); do
+    Release/circle-detector 2>/dev/null | grep Compute;
+done
+Compute time: 43 ms
+Compute time: 44 ms
+Compute time: 43 ms
+Compute time: 43 ms
+Compute time: 43 ms
+```
+The complexity of the algorithm is $N^{4}$ with $N$ being the image size because we first loop over each pixel to find the edge points ($N^{2}$) and then, for each edge point, we re-loop over the whole image to vote ($N^{2}$ again).
+
+$N=100$
+
+$100^{4}\times t = 43$
+
+$t = \frac{43}{100^{4}}$
+
+$t = 4.3\times 10^{-7}$
+
+For a 600 pixel wide image the result should be:
+
+$600^{4}\times t = ?$
+
+$600^{4}\times  4.3\times 10^{-7}= 55728$ ms or $55.73$ s
+
+But in real life:
+```bash
+Compute time: 39867 ms
+```
+The difference is quite high because the algorithm is not only composed of the $N^{4}$ part (vote) but also of a $N^{3}$ part (the local maximum search). This $N^{3}$ part is negligible when $N$ is big as in the case of the 600x600 image, but can have a significant impact when $N$ is small.
+
+So when we measure the 100x100 image we should only take into account the vote part.
+```bash
+Vote compute time: 31 ms
+```
+So the new estimation is:
+
+$600^{4}\times  3.1\times 10^{-7}= 40176$ ms or $40.18$ s
+
+And the actual result for the 600x600 image is:
+```bash
+Vote compute time: 34371 ms
+```
