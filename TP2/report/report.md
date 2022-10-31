@@ -272,3 +272,42 @@ And the actual result for the 600x600 image is:
 ```bash
 Vote compute time: 34371 ms
 ```
+
+
+We implemented the downscaling optimization:
+
+If we downscale once
+```bash
+[Downscaling: 1] Processing: Done. Vote compute time: 19100 ms
+[Downscaling: 2] Processing: Done. Vote compute time: 13424 ms
+Number of circles: 810433
+Number of circles drawn: 9
+Total compute time: 18422 ms
+```
+![](img/downscaling_1.png)
+
+```bash
+[Downscaling: 1] Processing: Done. Vote compute time: 2317 ms
+[Downscaling: 2] Processing: Done. Vote compute time: 1860 ms
+[Downscaling: 4] Processing: Done. Vote compute time: 664 ms
+[Downscaling: 8] Processing: Done. Vote compute time: 182 ms
+Total compute time: 4124 ms
+```
+![](img/downscaling_3.png)
+
+This is how we implemented it, the function `intermediate_circle_detection` takes an image and fills up the `local_maximums` vector. We split the radius interval in equal size sub-intervals and then call the function for each downscale.
+```cpp
+intermediate_circle_detection(grayscale_image, local_maximums, radius_min, radius_max / (nb_downscale + 1), 1);
+cv::Mat downscaled_image;
+cv::resize(grayscale_image, downscaled_image, cv::Size(grayscale_image.cols / 2, grayscale_image.rows / 2));
+for (int i = 1; i <= nb_downscale; i++)
+{
+    cv::resize(downscaled_image, downscaled_image,
+        cv::Size(grayscale_image.cols / std::pow(2, i),
+        grayscale_image.rows / std::pow(2, i)));
+    intermediate_circle_detection(grayscale_image, local_maximums,
+        i * radius_max / (nb_downscale + 1),
+        (i + 1) * radius_max / (nb_downscale + 1),
+        std::pow(2, i));
+}
+```
